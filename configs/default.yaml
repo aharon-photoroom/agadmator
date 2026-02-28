@@ -1,0 +1,42 @@
+# Pipeline configuration
+
+data:
+  agadmator_library_repo: "https://github.com/agadmator-library/agadmator-library.github.io"
+  audio_format: wav
+  audio_quality: 0
+  whisper_model: large-v3
+  demucs_model: htdemucs
+  stockfish_depth: 20
+
+llm:
+  base_model: "Qwen/Qwen2.5-7B-Instruct"
+  lora_rank: 64
+  lora_alpha: 128
+  learning_rate: 0.0002
+  epochs: 3
+  batch_size: 4
+  gradient_accumulation_steps: 4
+  max_seq_length: 4096
+  chessgpt_dataset: "Waterhorse/chess_data"
+
+tts:
+  model: "fishaudio/openaudio-s1-mini"
+  segment_min_duration: 3.0
+  segment_max_duration: 15.0
+  target_lufs: -23
+  sample_rate: 44100
+
+render:
+  board_size: 720
+  fps: 30
+  square_light: "#F0D9B5"
+  square_dark: "#B58863"
+  move_animation_frames: 10
+  highlight_color: "#FFFF0066"
+
+compose:
+  resolution: [1920, 1080]
+  board_position: [120, 60]  # x, y offset for board in final frame
+  fps: 30
+  audio_codec: aac
+  video_codec: libx264

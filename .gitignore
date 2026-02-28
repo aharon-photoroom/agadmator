@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Data (large files, not committed)
+data/raw/
+data/processed/
+data/models/
+data/output/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store

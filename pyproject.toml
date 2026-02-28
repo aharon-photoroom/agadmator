@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agadmator"
+version = "0.1.0"
+description = "Agadmator-style chess video generation pipeline"
+requires-python = ">=3.10"
+dependencies = [
+    "python-chess>=1.999",
+    "Pillow>=10.0",
+    "requests>=2.31",
+    "tqdm>=4.66",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+data = [
+    "yt-dlp>=2024.0",
+    "faster-whisper>=1.0",
+    "demucs>=4.0",
+    "stockfish>=3.28",
+]
+llm = [
+    "unsloth[colab-new]",
+    "datasets>=2.0",
+    "transformers>=4.40",
+    "trl>=0.8",
+    "peft>=0.10",
+    "bitsandbytes>=0.43",
+]
+tts = [
+    "fish-speech",
+    "soundfile>=0.12",
+    "librosa>=0.10",
+    "pyloudnorm>=0.1",
+]
+video = [
+    "numpy>=1.24",
+]
+all = ["agadmator[data,llm,tts,video]"]
+
+[project.scripts]
+agadmator = "agadmator.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
