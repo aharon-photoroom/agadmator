@@ -12,7 +12,7 @@ apt-get install -y -qq ffmpeg git fonts-dejavu-core curl unzip >/dev/null
 
 # Install deno (required by yt-dlp for YouTube JS challenges)
 if ! command -v deno &>/dev/null; then
-    curl -fsSL https://deno.land/install.sh | sh
+    curl -fsSL https://deno.land/install.sh | sh -s -- --yes
     export DENO_INSTALL="$HOME/.deno"
     export PATH="$DENO_INSTALL/bin:$PATH"
     # Make persistent
