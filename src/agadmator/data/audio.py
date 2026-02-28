@@ -9,12 +9,28 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from agadmator.config import RAW_DIR, AUDIO_DIR
+from agadmator.config import RAW_DIR, AUDIO_DIR, ROOT_DIR
 
 log = logging.getLogger(__name__)
 
 # Network-bound — safe to run many in parallel
 DEFAULT_WORKERS = 8
+
+# Looked up once at import time
+_COOKIES_FILE: Path | None = None
+
+
+def _find_cookies() -> Path | None:
+    """Find cookies.txt for YouTube authentication."""
+    candidates = [
+        ROOT_DIR / "cookies.txt",
+        Path.home() / "cookies.txt",
+        Path("/workspace/cookies.txt"),
+    ]
+    for p in candidates:
+        if p.is_file():
+            return p
+    return None
 
 
 def _env_with_deno() -> dict[str, str]:
@@ -26,7 +42,7 @@ def _env_with_deno() -> dict[str, str]:
     return env
 
 
-def download_single(video_id: str, output_dir: Path) -> Path | None:
+def download_single(video_id: str, output_dir: Path, cookies: Path | None = None) -> Path | None:
     """Download audio for a single YouTube video."""
     output_path = output_dir / f"{video_id}.wav"
     if output_path.exists():
@@ -42,8 +58,10 @@ def download_single(video_id: str, output_dir: Path) -> Path | None:
         "--no-playlist",
         "--remote-components", "ejs:github",
         "--remote-components", "ejs:npm",
-        url,
     ]
+    if cookies:
+        cmd += ["--cookies", str(cookies)]
+    cmd.append(url)
     try:
         subprocess.run(
             cmd, check=True, capture_output=True, text=True, timeout=300,
@@ -91,12 +109,21 @@ def download_audio(
         log.info("All files already downloaded.")
         return
 
+    cookies = _find_cookies()
+    if cookies:
+        log.info("Using cookies from %s", cookies)
+    else:
+        log.warning(
+            "No cookies.txt found. YouTube may block downloads from datacenter IPs. "
+            "Place cookies.txt in project root or home directory."
+        )
+
     downloaded = 0
     failed = 0
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futures = {
-            pool.submit(download_single, vid, AUDIO_DIR): vid for vid in todo
+            pool.submit(download_single, vid, AUDIO_DIR, cookies): vid for vid in todo
         }
         for future in tqdm(
             as_completed(futures), total=len(futures), desc="Downloading audio"
