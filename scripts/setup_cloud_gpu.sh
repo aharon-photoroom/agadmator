@@ -8,7 +8,17 @@ echo "=== Agadmator Pipeline: Cloud GPU Setup ==="
 # 1. System dependencies
 echo "[1/6] Installing system packages..."
 apt-get update -qq
-apt-get install -y -qq ffmpeg git fonts-dejavu-core deno >/dev/null
+apt-get install -y -qq ffmpeg git fonts-dejavu-core curl unzip >/dev/null
+
+# Install deno (required by yt-dlp for YouTube JS challenges)
+if ! command -v deno &>/dev/null; then
+    curl -fsSL https://deno.land/install.sh | sh
+    export DENO_INSTALL="$HOME/.deno"
+    export PATH="$DENO_INSTALL/bin:$PATH"
+    # Make persistent
+    echo 'export DENO_INSTALL="$HOME/.deno"' >> ~/.bashrc
+    echo 'export PATH="$DENO_INSTALL/bin:$PATH"' >> ~/.bashrc
+fi
 
 # 2. Verify GPU
 echo "[2/6] Checking GPU..."
