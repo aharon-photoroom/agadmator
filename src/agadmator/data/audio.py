@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -14,6 +15,15 @@ log = logging.getLogger(__name__)
 
 # Network-bound — safe to run many in parallel
 DEFAULT_WORKERS = 8
+
+
+def _env_with_deno() -> dict[str, str]:
+    """Return env dict with deno on PATH if installed."""
+    env = os.environ.copy()
+    deno_bin = Path.home() / ".deno" / "bin"
+    if deno_bin.is_dir() and str(deno_bin) not in env.get("PATH", ""):
+        env["PATH"] = f"{deno_bin}:{env.get('PATH', '')}"
+    return env
 
 
 def download_single(video_id: str, output_dir: Path) -> Path | None:
@@ -35,7 +45,10 @@ def download_single(video_id: str, output_dir: Path) -> Path | None:
         url,
     ]
     try:
-        subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=300)
+        subprocess.run(
+            cmd, check=True, capture_output=True, text=True, timeout=300,
+            env=_env_with_deno(),
+        )
         return output_path
     except FileNotFoundError:
         log.error("yt-dlp not found. Install with: pip install yt-dlp")
