@@ -16,21 +16,33 @@ gdown "$GDRIVE_FILE_ID" -O /tmp/raw_data.archive
 # 2. Extract to data/raw/
 echo "=== [2/8] Extracting data ==="
 mkdir -p data
-# Try extraction formats in order
-if tar xzf /tmp/raw_data.archive -C data/ 2>/dev/null; then
+# Try extraction formats in order (use pigz for parallel gzip if available)
+if command -v pigz &>/dev/null; then
+    echo "Using pigz for parallel decompression..."
+    if pigz -dc /tmp/raw_data.archive | tar xf - -C data/; then
+        echo "Extracted as tar.gz (pigz)"
+    elif tar xf /tmp/raw_data.archive -C data/; then
+        echo "Extracted as tar"
+    else
+        echo "ERROR: Could not extract archive"
+        exit 1
+    fi
+elif tar xzf /tmp/raw_data.archive -C data/; then
     echo "Extracted as tar.gz"
-elif tar xf /tmp/raw_data.archive -C data/ 2>/dev/null; then
+elif tar xf /tmp/raw_data.archive -C data/; then
     echo "Extracted as tar"
-elif unzip -o /tmp/raw_data.archive -d data/ 2>/dev/null; then
+elif unzip -o /tmp/raw_data.archive -d data/; then
     echo "Extracted as zip"
 else
     echo "ERROR: Could not extract archive"
     exit 1
 fi
-rm /tmp/raw_data.archive
 
 echo "Audio files: $(ls data/raw/audio/*.wav 2>/dev/null | wc -l)"
 echo "PGN files:   $(ls data/raw/pgn/*.pgn 2>/dev/null | wc -l)"
+
+# Only remove archive after successful extraction
+rm /tmp/raw_data.archive
 
 # 3. Isolate vocals
 echo "=== [3/8] Isolating vocals (Demucs) ==="
