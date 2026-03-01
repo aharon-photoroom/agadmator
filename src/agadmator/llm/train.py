@@ -43,14 +43,14 @@ def _plan_training(vram_gb: float, cfg: dict) -> dict:
     max_seq = cfg["max_seq_length"]
 
     if vram_gb >= 70:
-        # H200 / A100-80GB: go all out
+        # H200 / A100-80GB: bf16, large batches with grad checkpointing
         return {
             "load_in_4bit": False,
-            "batch_size": 32,
-            "grad_accum": 1,
-            "max_seq_length": 8192,
-            "grad_checkpointing": False,
-            "note": "H200/A100-80GB: bf16, no quant, batch 32, seq 8192",
+            "batch_size": 8,
+            "grad_accum": 4,
+            "max_seq_length": 4096,
+            "grad_checkpointing": True,
+            "note": "H200/A100-80GB: bf16, no quant, batch 8×4, seq 4096",
         }
     elif vram_gb >= 35:
         # A100-40GB
