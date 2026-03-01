@@ -57,7 +57,7 @@ def generate_commentary(
 
     from unsloth import FastLanguageModel
 
-    vram_gb = torch.cuda.get_device_properties(0).total_mem / 1e9
+    vram_gb = torch.cuda.get_device_properties(0).total_memory / 1e9
     # Skip quantization on large-VRAM GPUs (7B bf16 ≈ 14GB)
     use_4bit = vram_gb < 30
 
