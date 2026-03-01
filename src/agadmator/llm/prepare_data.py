@@ -78,25 +78,65 @@ def prepare_agadmator_pairs() -> list[dict]:
 
 
 def prepare_chessgpt_data() -> list[dict]:
-    """Prepare domain pre-training data from ChessGPT dataset."""
+    """Prepare domain pre-training data from ChessGPT dataset.
+
+    The dataset has mixed schemas across files, so we load each file
+    separately and extract what we can from each format.
+    """
     try:
         from datasets import load_dataset
+        from huggingface_hub import HfApi
     except ImportError:
-        log.error("Install 'datasets' package: pip install datasets")
+        log.error("Install 'datasets' and 'huggingface_hub' packages")
         return []
 
     log.info("Loading ChessGPT dataset from HuggingFace...")
-    ds = load_dataset(CHESSGPT_DATASET, split="train")
+
+    # List individual data files to handle mixed schemas
+    api = HfApi()
+    files = api.list_repo_files(CHESSGPT_DATASET, repo_type="dataset")
+    data_files = [f for f in files if f.endswith((".jsonl", ".jsonl.zst", ".json"))]
 
     pairs = []
-    for item in ds:
-        # ChessGPT has various formats; extract move-commentary pairs
-        pgn = item.get("input", "") or item.get("pgn", "")
-        commentary = item.get("output", "") or item.get("commentary", "")
-        if not pgn or not commentary:
+    for data_file in data_files:
+        try:
+            ds = load_dataset(
+                CHESSGPT_DATASET, data_files=data_file, split="train"
+            )
+        except Exception as e:
+            log.warning("Skipping %s: %s", data_file, str(e)[:100])
             continue
 
-        pairs.append(make_conversation(pgn, commentary))
+        for item in ds:
+            # Format 1: conversation-based (author/text pairs)
+            if "conversations" in item:
+                convos = item["conversations"]
+                if len(convos) >= 2:
+                    # Use first message as input, second as output
+                    pgn = convos[0].get("text", "")
+                    commentary = convos[1].get("text", "")
+                    if pgn and commentary and len(commentary) > 50:
+                        pairs.append(make_conversation(pgn, commentary))
+            # Format 2: text + metadata
+            elif "text" in item:
+                text = item.get("text", "")
+                # Skip short or non-chess content
+                if len(text) > 100 and any(
+                    kw in text.lower()
+                    for kw in ["e4", "d4", "nf3", "pgn", "chess", "move"]
+                ):
+                    # Use as self-supervised: text is both input context and output
+                    pairs.append(make_conversation(
+                        "Discuss the following chess content:", text
+                    ))
+            # Format 3: input/output pairs
+            else:
+                pgn = item.get("input", "") or item.get("pgn", "")
+                commentary = item.get("output", "") or item.get("commentary", "")
+                if pgn and commentary:
+                    pairs.append(make_conversation(pgn, commentary))
+
+        log.info("Processed %s: %d pairs so far", data_file, len(pairs))
 
     log.info("Prepared %d ChessGPT training pairs", len(pairs))
     return pairs
