@@ -204,9 +204,33 @@ def train_llm(config_path: str, phase: str):
         "Starting %s training: %d epochs, batch %d×%d, seq %d, bf16=%s",
         phase, epochs, plan["batch_size"], plan["grad_accum"], max_seq, use_bf16,
     )
+
+    # Add validation callback to generate samples each epoch
+    from transformers import TrainerCallback
+    from agadmator.llm.validate import generate_validation_samples
+
+    class ValidationSampleCallback(TrainerCallback):
+        def on_epoch_end(self, args, state, control, model=None, **kwargs):
+            epoch = int(state.epoch)
+            log.info("Generating validation samples at epoch %d...", epoch)
+            FastLanguageModel.for_inference(model)
+            generate_validation_samples(
+                model, tokenizer, phase, f"epoch_{epoch}", num_samples=3,
+            )
+            # Switch back to training mode
+            model.train()
+
+    trainer.add_callback(ValidationSampleCallback())
     trainer.train()
 
     # Save LoRA adapter
     model.save_pretrained(str(output_dir))
     tokenizer.save_pretrained(str(output_dir))
     log.info("Saved model to %s", output_dir)
+
+    # Final validation with more samples
+    log.info("Generating final validation samples...")
+    FastLanguageModel.for_inference(model)
+    generate_validation_samples(
+        model, tokenizer, phase, "final", num_samples=5,
+    )
