@@ -16,18 +16,16 @@ gdown "$GDRIVE_FILE_ID" -O /tmp/raw_data.archive
 # 2. Extract to data/raw/
 echo "=== [2/8] Extracting data ==="
 mkdir -p data
-# Detect archive type and extract
-FILE_TYPE=$(file /tmp/raw_data.archive)
-if echo "$FILE_TYPE" | grep -q "Zip archive"; then
-    unzip -o /tmp/raw_data.archive -d data/
-elif echo "$FILE_TYPE" | grep -q "gzip"; then
-    tar xzf /tmp/raw_data.archive -C data/
-elif echo "$FILE_TYPE" | grep -q "tar"; then
-    tar xf /tmp/raw_data.archive -C data/
+# Try extraction formats in order
+if tar xzf /tmp/raw_data.archive -C data/ 2>/dev/null; then
+    echo "Extracted as tar.gz"
+elif tar xf /tmp/raw_data.archive -C data/ 2>/dev/null; then
+    echo "Extracted as tar"
+elif unzip -o /tmp/raw_data.archive -d data/ 2>/dev/null; then
+    echo "Extracted as zip"
 else
-    echo "Unknown archive format: $FILE_TYPE"
-    echo "Trying tar xzf..."
-    tar xzf /tmp/raw_data.archive -C data/
+    echo "ERROR: Could not extract archive"
+    exit 1
 fi
 rm /tmp/raw_data.archive
 
