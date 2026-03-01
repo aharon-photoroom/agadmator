@@ -35,7 +35,7 @@ def _gpu_parallel_slots() -> int:
         import torch
         if torch.cuda.is_available():
             vram_gb = torch.cuda.get_device_properties(0).total_memory / 1e9
-            return max(1, int(vram_gb // 5))  # ~5GB headroom per slot
+            return max(1, min(8, int(vram_gb // 10)))  # ~10GB per slot, cap at 8
     except ImportError:
         pass
     return 1
